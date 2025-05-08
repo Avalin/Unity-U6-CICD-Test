@@ -1,9 +1,9 @@
-name: ✈️ CI/CD Redeployer (Test)
+name: ✈️ CI/CD Redeployer (Public)
 
 on:
   workflow_dispatch:
     inputs:
-      tagVersion:
+      buildVersion:
         description: "The release tag version to deploy from (e.g., v1.2.3)"
         required: true
         default: 'v0.0.0'
@@ -13,8 +13,8 @@ on:
         required: true
         default: '["gh-pages"]'
         type: string
-      targetPlatforms:
-        description: "JSON array of target platforms (e.g. [\"WebGL\",\"iOS\"]) - Optional (leave empty)"
+      buildTargets:
+        description: "JSON array of build targets (e.g. [\"WebGL\",\"iOS\"]) - Optional (leave empty)"
         required: false
         type: string
 
@@ -33,7 +33,7 @@ jobs:
     steps:
       - name: Run Project Name Sanitizer
         id: sanitize
-        uses: avalin/unity-ci-templates/.github/actions/resolve-project-name@v1
+        uses: avalin/unity-ci-templates/.github/actions/resolve-project-name@unity-6-build-profiles-test
         with:
           projectName: ${{ vars.PROJECT_NAME }}
 
@@ -54,15 +54,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔍 Checking if release '${{ inputs.tagVersion }}' exists..." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "🔍 Checking if release '${{ inputs.buildVersion }}' exists..." | tee -a "$GITHUB_STEP_SUMMARY"
 
           # Attempt to fetch release data and save to file
-          if ! gh api repos/${{ github.repository }}/releases/tags/${{ inputs.tagVersion }} --jq '.' > release.json; then
-            echo "❌ Release '${{ inputs.tagVersion }}' not found or API call failed." | tee -a "$GITHUB_STEP_SUMMARY"
+          if ! gh api repos/${{ github.repository }}/releases/tags/${{ inputs.buildVersion }} --jq '.' > release.json; then
+            echo "❌ Release '${{ inputs.buildVersion }}' not found or API call failed." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
-          echo "✅ Release found. Redeploying: '${{ inputs.tagVersion }}'..." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "✅ Release found. Redeploying: '${{ inputs.buildVersion }}'..." | tee -a "$GITHUB_STEP_SUMMARY"
 
           # Load release data
           RELEASE_DATA=$(cat release.json)
@@ -85,13 +85,13 @@ jobs:
     needs: 
       - sanitize_project_name
       - validate_release
-    uses: avalin/unity-ci-templates/.github/workflows/step-4-deploy.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-4-deploy.yml@unity-6-build-profiles-test
     with:
       buildType: release
-      version: ${{ inputs.tagVersion }}
+      buildVersion: ${{ inputs.buildVersion }}
       projectName: ${{ needs.sanitize_project_name.outputs.sanitized_name }}
       deployTargets: ${{ inputs.deployTargets || '[]' }}
-      targetPlatforms: ${{ inputs.targetPlatforms != '' && inputs.targetPlatforms || vars.TARGET_PLATFORMS || '[]' }}
+      buildTargets: ${{ inputs.buildTargets != '' && inputs.buildTargets || vars.BUILD_TARGETS || '[]' }}
       hasCombinedArtifacts: ${{ needs.validate_release.outputs.hasCombinedArtifacts }}
       artifactSource: release
     secrets: inherit
@@ -103,9 +103,9 @@ jobs:
     name: Notify
     needs: 
       - redeploy
-    uses: avalin/unity-ci-templates/.github/workflows/step-5-notify.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-5-notify.yml@unity-6-build-profiles-test
     with:
-      version: ${{ inputs.tagVersion }}
+      buildVersion: ${{ inputs.buildVersion }}
       releaseResult: 'success'
       releaseErrorMessage: ''
       deployResult: ${{ needs.redeploy.result }}

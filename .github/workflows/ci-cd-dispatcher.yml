@@ -1,4 +1,4 @@
-name: ⚙️ CI/CD Dispatcher (Test)
+name: ⚙️ CI/CD Dispatcher (Public)
 
 on:
   # Allow manual dispatch with a buildType input
@@ -27,12 +27,12 @@ on:
         required: true
         default: '["gh-pages"]'
         type: string
-      targetPlatforms:
-        description: "JSON array of target platforms (e.g. [\"WebGL\",\"iOS\"])"
+      buildTargets:
+        description: "JSON array of build targets (e.g. [\"WebGL\",\"iOS\"])"
         required: true
         default: '["WebGL"]'
         type: string
-      version:
+      buildVersion:
         description: Optional version override
         type: string
         required: false
@@ -86,13 +86,13 @@ jobs:
     name: Validate Repository Inputs
     needs: skip_ci
     if: ${{ needs.skip_ci.outputs.should_run == 'true'}}
-    uses: avalin/unity-ci-templates/.github/workflows/validate-repository-inputs.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/validate-repository-inputs.yml@unity-6-build-profiles-test
     with:
       requiredVariables: |
         [
           "PROJECT_NAME",
           "DEPLOY_TARGETS",
-          "TARGET_PLATFORMS"
+          "BUILD_TARGETS"
         ]
     secrets:
       CICD_PAT: ${{ secrets.CICD_PAT }}
@@ -106,14 +106,15 @@ jobs:
       - skip_ci
       - validate_repository_inputs
     if: ${{ needs.skip_ci.outputs.should_run == 'true'}}
-    uses: avalin/unity-ci-templates/.github/workflows/prepare-metadata.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/prepare-metadata.yml@unity-6-build-profiles-test
     with:
+      unityVersion: ${{ vars.UNITY_VERSION }}
       projectName: ${{ vars.PROJECT_NAME }}
       skipTests: ${{ inputs.skipTests }}
       deployTargets: ${{ inputs.deployTargets }}
-      targetPlatforms: ${{ inputs.targetPlatforms }}
+      buildTargets: ${{ inputs.buildTargets }}
       buildType: ${{ inputs.buildType }}
-      version: ${{ inputs.version }}
+      buildVersion: ${{ inputs.buildVersion }}
 
   tagging:
     name: Create or Verify Tag
@@ -121,10 +122,10 @@ jobs:
       - skip_ci
       - prepare_metadata
     if: ${{ needs.skip_ci.outputs.should_run == 'true'}}
-    uses: avalin/unity-ci-templates/.github/workflows/version-tagger.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/build-version-tagger.yml@unity-6-build-profiles-test
     with:
       buildType: ${{ needs.prepare_metadata.outputs.buildType }}
-      version: ${{ needs.prepare_metadata.outputs.version }}
+      buildVersion: ${{ needs.prepare_metadata.outputs.buildVersion }}
     secrets: inherit
   
   trigger_ci:
@@ -148,22 +149,22 @@ jobs:
         run: |
           gh workflow run ci-cd-pipeline.yml \
             --ref "${{ github.ref }}" \
-            --field targetPlatforms="$(printf '%s' '${{ needs.prepare_metadata.outputs.targetPlatforms }}')" \
+            --field buildTargets="$(printf '%s' '${{ needs.prepare_metadata.outputs.buildTargets }}')" \
             --field validDeployTargets="$(printf '%s' '${{ needs.prepare_metadata.outputs.validDeployTargets }}')" \
             --field metadataConfig="$(jq -c -n \
               --arg projectName "${{ needs.prepare_metadata.outputs.projectName }}" \
               --arg skipTests "${{ needs.prepare_metadata.outputs.skipTests }}" \
               --arg testsOnly "${{ needs.prepare_metadata.outputs.testsOnly }}" \
               --arg buildType "${{ needs.prepare_metadata.outputs.buildType }}" \
-              --arg version "${{ needs.prepare_metadata.outputs.version }}" \
+              --arg buildVersion "${{ needs.prepare_metadata.outputs.buildVersion }}" \
               --arg retentionDays "${{ needs.prepare_metadata.outputs.retentionDays }}" \
               --arg timeoutMinutesTests "${{ needs.prepare_metadata.outputs.timeoutMinutesTests }}" \
               --arg timeoutMinutesBuild "${{ needs.prepare_metadata.outputs.timeoutMinutesBuild }}" \
-              '{projectName: $projectName, skipTests: $skipTests, testsOnly: $testsOnly, buildType: $buildType, version: $version, retentionDays: $retentionDays, timeoutMinutesTests: $timeoutMinutesTests, timeoutMinutesBuild: $timeoutMinutesBuild}')" \
+              '{projectName: $projectName, skipTests: $skipTests, testsOnly: $testsOnly, buildType: $buildType, buildVersion: $buildVersion, retentionDays: $retentionDays, timeoutMinutesTests: $timeoutMinutesTests, timeoutMinutesBuild: $timeoutMinutesBuild}')" \
             --field artifactConfig="$(jq -c -n \
               --arg requiresCombined "${{ needs.prepare_metadata.outputs.requiresCombined }}" \
-              --arg skipPerPlatform "${{ needs.prepare_metadata.outputs.skipPerPlatform }}" \
-              '{requiresCombined: $requiresCombined, skipPerPlatform: $skipPerPlatform}')" \
+              --arg skipPerBuildTarget "${{ needs.prepare_metadata.outputs.skipPerBuildTarget }}" \
+              '{requiresCombined: $requiresCombined, skipPerBuildTarget: $skipPerBuildTarget}')" \
             --field testDataConfig="$(jq -c -n \
               --arg unityVersion "${{ needs.prepare_metadata.outputs.unityVersion }}" \
               --arg useGitLfs "${{ needs.prepare_metadata.outputs.useGitLfs }}" \

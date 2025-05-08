@@ -1,4 +1,4 @@
-name: 🚀 CI/CD Pipeline (Test)
+name: 🚀 CI/CD Pipeline (Public)
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         type: string
         required: true
         default: '[]'
-      targetPlatforms:
+      buildTargets:
         type: string
         required: true
         default: '[]'
@@ -33,10 +33,10 @@ jobs:
       skipTests: ${{ steps.unpack.outputs.skipTests }}
       testsOnly: ${{ steps.unpack.outputs.testsOnly }}
       buildType: ${{ steps.unpack.outputs.buildType }}
-      version: ${{ steps.unpack.outputs.version }}
+      buildVersion: ${{ steps.unpack.outputs.buildVersion }}
       retentionDays: ${{ steps.unpack.outputs.retentionDays }}
       requiresCombined: ${{ steps.unpack.outputs.requiresCombined }}
-      skipPerPlatform: ${{ steps.unpack.outputs.skipPerPlatform }}
+      skipPerBuildTarget: ${{ steps.unpack.outputs.skipPerBuildTarget }}
       unityVersion: ${{ steps.unpack.outputs.unityVersion }}
       useGitLfs: ${{ steps.unpack.outputs.useGitLfs }}
       editModePath: ${{ steps.unpack.outputs.editModePath }}
@@ -63,14 +63,14 @@ jobs:
           echo "skipTests=$(echo "$meta" | jq -r .skipTests)" >> "$GITHUB_OUTPUT"
           echo "testsOnly=$(echo "$meta" | jq -r .testsOnly)" >> "$GITHUB_OUTPUT"
           echo "buildType=$(echo "$meta" | jq -r .buildType)" >> "$GITHUB_OUTPUT"
-          echo "version=$(echo "$meta" | jq -r .version)" >> "$GITHUB_OUTPUT"
+          echo "buildVersion=$(echo "$meta" | jq -r .buildVersion)" >> "$GITHUB_OUTPUT"
           echo "retentionDays=$(echo "$meta" | jq -r .retentionDays)" >> "$GITHUB_OUTPUT"
           echo "timeoutMinutesTests=$(echo "$meta" | jq -r .timeoutMinutesTests)" >> "$GITHUB_OUTPUT"
           echo "timeoutMinutesBuild=$(echo "$meta" | jq -r .timeoutMinutesBuild)" >> "$GITHUB_OUTPUT"
 
           # Artifacts Config
           echo "requiresCombined=$(echo "$artifact" | jq -r .requiresCombined)" >> "$GITHUB_OUTPUT"
-          echo "skipPerPlatform=$(echo "$artifact" | jq -r .skipPerPlatform)" >> "$GITHUB_OUTPUT"
+          echo "skipPerBuildTarget=$(echo "$artifact" | jq -r .skipPerBuildTarget)" >> "$GITHUB_OUTPUT"
 
   # ─────────────────────────────────────────────────────────────────────────────
   # 1. Run Tests
@@ -79,7 +79,7 @@ jobs:
     name: Run Tests
     if: ${{ needs.unpack_inputs.outputs.skipTests != 'true' }}
     needs: unpack_inputs
-    uses: avalin/unity-ci-templates/.github/workflows/step-1-test.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-1-test.yml@unity-6-build-profiles-test
     with:
       unityVersion: ${{ needs.unpack_inputs.outputs.unityVersion }}
       useGitLfs: ${{ needs.unpack_inputs.outputs.useGitLfs }}
@@ -104,12 +104,14 @@ jobs:
       always() &&
       needs.unpack_inputs.outputs.testsOnly != 'true' &&
       (needs.run_tests.result == 'success' || needs.run_tests.result == 'skipped')
-    uses: avalin/unity-ci-templates/.github/workflows/step-2-build.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-2-build.yml@unity-6-build-profiles-test
     with:
       # If the event is a push with a tag, force buildType to "release"; otherwise, use the input.
       projectName: ${{ needs.unpack_inputs.outputs.projectName }}
-      version: ${{ needs.unpack_inputs.outputs.version }}
-      targetPlatforms: ${{ inputs.targetPlatforms }}
+      unityVersion: ${{ needs.unpack_inputs.outputs.unityVersion }}
+      buildVersion: ${{ needs.unpack_inputs.outputs.buildVersion }}
+      buildType: ${{ needs.unpack_inputs.outputs.buildType }}
+      buildTargets: ${{ inputs.buildTargets }}
       combineArtifacts: ${{ needs.unpack_inputs.outputs.requiresCombined }}
       timeoutMinutes: ${{ fromJson(needs.unpack_inputs.outputs.timeoutMinutesBuild) }}
       retentionDays: ${{ fromJson(needs.unpack_inputs.outputs.retentionDays) }}
@@ -134,14 +136,14 @@ jobs:
         needs.unpack_inputs.outputs.buildType == 'release' || 
         needs.unpack_inputs.outputs.buildType == 'release_candidate'
       )
-    uses: avalin/unity-ci-templates/.github/workflows/step-3-release.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-3-release.yml@unity-6-build-profiles-test
     with:
       buildType: ${{ needs.unpack_inputs.outputs.buildType }}
-      version: ${{ needs.unpack_inputs.outputs.version }}
+      buildVersion: ${{ needs.unpack_inputs.outputs.buildVersion }}
       projectName: ${{ needs.unpack_inputs.outputs.projectName }}
-      targetPlatforms: ${{ inputs.targetPlatforms }}
+      buildTargets: ${{ inputs.buildTargets }}
       combineArtifacts: ${{ needs.unpack_inputs.outputs.requiresCombined }}
-      skipPerPlatformArtifacts: ${{ needs.unpack_inputs.outputs.skipPerPlatform }}
+      skipPerBuildTargetArtifacts: ${{ needs.unpack_inputs.outputs.skipPerBuildTarget }}
     secrets: inherit
 
   # ─────────────────────────────────────────────────────────────────────────────
@@ -158,13 +160,13 @@ jobs:
        needs.unpack_inputs.outputs.testsOnly != 'true' &&
        needs.release.result == 'success' &&
        inputs.validDeployTargets != '[]'
-    uses: avalin/unity-ci-templates/.github/workflows/step-4-deploy.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-4-deploy.yml@unity-6-build-profiles-test
     with:
       buildType: ${{ needs.unpack_inputs.outputs.buildType }}
-      version: ${{ needs.unpack_inputs.outputs.version }}
+      buildVersion: ${{ needs.unpack_inputs.outputs.buildVersion }}
       projectName: ${{ needs.unpack_inputs.outputs.projectName }}
       deployTargets: ${{ inputs.validDeployTargets }}
-      targetPlatforms: ${{ inputs.targetPlatforms }}
+      buildTargets: ${{ inputs.buildTargets }}
       hasCombinedArtifacts: ${{ needs.unpack_inputs.outputs.requiresCombined }}
       artifactSource: build
     secrets: inherit
@@ -187,9 +189,9 @@ jobs:
         needs.unpack_inputs.outputs.buildType == 'release' || 
         needs.unpack_inputs.outputs.buildType == 'release_candidate'
       )
-    uses: avalin/unity-ci-templates/.github/workflows/step-5-notify.yml@v1
+    uses: avalin/unity-ci-templates/.github/workflows/step-5-notify.yml@unity-6-build-profiles-test
     with:
-      version: ${{ needs.unpack_inputs.outputs.version }}
+      buildVersion: ${{ needs.unpack_inputs.outputs.buildVersion }}
       releaseResult: ${{ needs.release.result }}
       releaseErrorMessage: ${{ needs.release.outputs.releaseErrorMessage }}
       deployResult: ${{ needs.deploy.result }}
