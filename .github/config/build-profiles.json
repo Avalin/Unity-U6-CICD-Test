@@ -1,37 +1,37 @@
 {
     "Android": {
-      "preview": "CI-Android-Preview",
-      "release_candidate": "CI-Android-RC",
-      "release": "CI-Android-Release"
+      "preview": "CI-Android",
+      "release_candidate": "CI-Android",
+      "release": "CI-Android"
     },
     "WebGL": {
-      "preview": "CI-WebGL-Preview",
-      "release_candidate": "CI-WebGL-RC",
-      "release": "CI-WebGL-Release"
+      "preview": "CI-WebGL",
+      "release_candidate": "CI-WebGL",
+      "release": "CI-WebGL"
     },
     "StandaloneLinux64": {
-      "preview": "CI-Linux-Preview",
-      "release_candidate": "CI-Linux-RC",
-      "release": "CI-Linux-Release"
+      "preview": "CI-Linux",
+      "release_candidate": "CI-Linux",
+      "release": "CI-Linux"
     },
     "StandaloneWindows": {
-      "preview": "CI-Windows-Preview",
-      "release_candidate": "CI-Windows-RC",
-      "release": "CI-Windows-Release"
+      "preview": "CI-Windows",
+      "release_candidate": "CI-Windows",
+      "release": "CI-Windows"
     },
     "StandaloneWindows64": {
-      "preview": "CI-Windows64-Preview",
-      "release_candidate": "CI-Windows64-RC",
-      "release": "CI-Windows64-Release"
+      "preview": "CI-Windows64",
+      "release_candidate": "CI-Windows64",
+      "release": "CI-Windows64"
     },
     "StandaloneOSX": {
-      "preview": "CI-macOS-Preview",
-      "release_candidate": "CI-macOS-RC",
-      "release": "CI-macOS-Release"
+      "preview": "CI-macOS",
+      "release_candidate": "CI-macOS",
+      "release": "CI-macOS"
     },
     "iOS": {
-      "preview": "CI-iOS-Preview",
-      "release_candidate": "CI-iOS-RC",
-      "release": "CI-iOS-Release"
+      "preview": "CI-iOS",
+      "release_candidate": "CI-iOS",
+      "release": "CI-iOS"
     }
 }  
